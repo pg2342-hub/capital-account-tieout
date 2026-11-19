@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Capital account tie-out checker</title>
+<meta name="description" content="Rolls each LP&#x27;s capital account forward and flags every account that does not tie to the prior administrator&#x27;s statement.">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#000;--mute:#555;--line:#d9d9d9;--soft:#f5f5f5;--bg:#fff}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.6 Inter,system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+main{max-width:980px;margin:0 auto;padding:40px 16px 64px}
+a{color:var(--ink)}
+header .kicker{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--mute);margin:0 0 6px}
+h1{font-size:30px;line-height:1.2;margin:0 0 12px;letter-spacing:-.01em}
+.lede{font-size:16px;max-width:760px}
+.lede p{margin:0 0 10px}
+.links{display:flex;flex-wrap:wrap;gap:10px;margin:18px 0 6px}
+.btn{display:inline-block;border:1.5px solid var(--ink);padding:7px 14px;border-radius:6px;text-decoration:none;font-weight:600;font-size:14px}
+.btn.primary{background:var(--ink);color:#fff}
+.note{font-size:13px;color:var(--mute);margin-top:10px}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin:28px 0 8px}
+.tile{border:1px solid var(--line);border-radius:8px;padding:14px 16px;background:var(--soft)}
+.tile .n{font-size:24px;font-weight:700;line-height:1.2;font-variant-numeric:tabular-nums}
+.tile .l{font-size:13px;color:var(--mute);margin-top:4px}
+section{margin-top:40px;border-top:1px solid var(--line);padding-top:20px}
+h2{font-size:20px;margin:0 0 12px}
+h3{font-size:16px;margin:22px 0 8px}
+h4{font-size:14px;margin:18px 0 6px}
+.tw{overflow-x:auto;margin:10px 0 16px;border:1px solid var(--line);border-radius:6px}
+table{border-collapse:collapse;width:100%;font-size:13px;font-variant-numeric:tabular-nums}
+th,td{padding:7px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+th{background:var(--soft);font-weight:600;white-space:nowrap}
+tr:last-child td{border-bottom:0}
+code{font:12.5px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;background:var(--soft);padding:1px 4px;border-radius:3px}
+pre{background:var(--soft);border:1px solid var(--line);border-radius:6px;padding:12px 14px;overflow-x:auto}
+pre code{background:none;padding:0}
+img{max-width:100%;height:auto;border:1px solid var(--line);border-radius:6px}
+footer{margin-top:48px;font-size:12px;color:var(--mute);border-top:1px solid var(--line);padding-top:14px}
+</style></head>
+<body><main>
+<header>
+<p class="kicker">Demo · capital-account-tieout</p>
+<h1>Capital account tie-out checker</h1>
+<div class="lede"><p>A small checker for the first gate of a fund administrator switch: before the new books run live, every LP's capital account has to tie to the statement the prior administrator issued.</p>
+<p>It rolls each LP's capital account forward from the fund terms, the LP register, and the fund's events (capital calls, management fees, fee offsets, expenses, unrealized gains and losses, and a later close with catch-up calls, catch-up fees, and equalization interest). It then compares each balance with the prior administrator's statement and flags every account off by more than $1, naming the component whose omission or double count explains the gap.</p>
+<p><strong>All data is synthetic.</strong> <code>data/</code> describes a made-up $50M venture fund with 12 LPs, ten admitted at a January 2026 first close and two at a May 2026 later close. It is not based on any real fund, LPA, or administrator's statements, and the terms are simplified (see <code>data/fund_terms.json</code>). A real LPA's fee basis, offset percentage, equalization rate, and allocation rules all have to be confirmed before a tie-out means anything.</p></div>
+<div class="links"><a class="btn primary" href="https://github.com/pg2342-hub/capital-account-tieout">View the code on GitHub</a><a class="btn" href="#run">Run it yourself</a></div>
+<p class="note">All data is synthetic: a made-up $50M venture fund with 12 LPs, not based on any real fund or administrator. Everything on this page is the committed output of the code in the repository.</p>
+</header>
+<div class="tiles"><div class="tile"><div class="n">5 of 5</div><div class="l">seeded breaks flagged, each with the right cause among those named</div></div><div class="tile"><div class="n">7 of 12</div><div class="l">accounts tie within the $1 tolerance</div></div><div class="tile"><div class="n">$0.40</div><div class="l">rounding difference correctly left as a tie</div></div><div class="tile"><div class="n">4 tests</div><div class="l">including two balances re-derived by hand</div></div></div>
+<section><h2>Sample output: the tie-out report</h2><p>Statements checked: <code>prior_admin_statements_2026-09-30.csv</code>. Tolerance: $1. 7 of 12 accounts tie; 5 break.</p>
+<div class="tw"><table>
+<thead>
+<tr>
+<th>LP</th>
+<th style="text-align: right;">Rolled forward</th>
+<th style="text-align: right;">Statement</th>
+<th style="text-align: right;">Difference</th>
+<th>Result</th>
+<th>Likely cause</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>LP01</td>
+<td style="text-align: right;">3,613,720.55</td>
+<td style="text-align: right;">3,613,720.95</td>
+<td style="text-align: right;">+0.40</td>
+<td>TIES</td>
+<td></td>
+</tr>
+<tr>
+<td>LP02</td>
+<td style="text-align: right;">2,710,290.41</td>
+<td style="text-align: right;">2,710,290.41</td>
+<td style="text-align: right;">+0.00</td>
+<td>TIES</td>
+<td></td>
+</tr>
+<tr>
+<td>LP03</td>
+<td style="text-align: right;">2,258,575.34</td>
+<td style="text-align: right;">2,255,575.34</td>
+<td style="text-align: right;">-3,000.00</td>
+<td>BREAK</td>
+<td>fee offset 2026-09-30 missing from the statement (+3,000.00)</td>
+</tr>
+<tr>
+<td>LP04</td>
+<td style="text-align: right;">2,258,575.34</td>
+<td style="text-align: right;">2,258,575.34</td>
+<td style="text-align: right;">+0.00</td>
+<td>TIES</td>
+<td></td>
+</tr>
+<tr>
+<td>LP05</td>
+<td style="text-align: right;">1,806,860.27</td>
+<td style="text-align: right;">1,801,600.00</td>
+<td style="text-align: right;">-5,260.27</td>
+<td>BREAK</td>
+<td>equalization interest 2026-05-15 missing from the statement (+5,260.27)</td>
+</tr>
+<tr>
+<td>LP06</td>
+<td style="text-align: right;">1,355,145.21</td>
+<td style="text-align: right;">1,355,145.21</td>
+<td style="text-align: right;">+0.00</td>
+<td>TIES</td>
+<td></td>
+</tr>
+<tr>
+<td>LP07</td>
+<td style="text-align: right;">1,355,145.21</td>
+<td style="text-align: right;">1,355,145.21</td>
+<td style="text-align: right;">+0.00</td>
+<td>TIES</td>
+<td></td>
+</tr>
+<tr>
+<td>LP08</td>
+<td style="text-align: right;">1,129,287.67</td>
+<td style="text-align: right;">879,287.67</td>
+<td style="text-align: right;">-250,000.00</td>
+<td>BREAK</td>
+<td>call 2026-07-15 missing from the statement (+250,000.00)</td>
+</tr>
+<tr>
+<td>LP09</td>
+<td style="text-align: right;">903,430.14</td>
+<td style="text-align: right;">903,430.14</td>
+<td style="text-align: right;">+0.00</td>
+<td>TIES</td>
+<td></td>
+</tr>
+<tr>
+<td>LP10</td>
+<td style="text-align: right;">677,572.60</td>
+<td style="text-align: right;">677,572.60</td>
+<td style="text-align: right;">+0.00</td>
+<td>TIES</td>
+<td></td>
+</tr>
+<tr>
+<td>LP11</td>
+<td style="text-align: right;">2,711,400.00</td>
+<td style="text-align: right;">2,741,400.00</td>
+<td style="text-align: right;">+30,000.00</td>
+<td>BREAK</td>
+<td>catch-up management fee 2026-03-31 missing from the statement (-30,000.00); management fee 2026-06-30 missing from the statement (-30,000.00); management fee 2026-09-30 missing from the statement (-30,000.00)</td>
+</tr>
+<tr>
+<td>LP12</td>
+<td style="text-align: right;">1,807,600.00</td>
+<td style="text-align: right;">1,711,600.00</td>
+<td style="text-align: right;">-96,000.00</td>
+<td>BREAK</td>
+<td>unrealized gain/loss 2026-06-30 missing from the statement (+96,000.00)</td>
+</tr>
+</tbody>
+</table></div>
+<p>All data is synthetic. Nothing here comes from a real fund or administrator.</p></section><section><h2>What the demo shows</h2><p>The synthetic statements carry five seeded breaks and one 40-cent rounding difference:</p>
+<div class="tw"><table>
+<thead>
+<tr>
+<th>LP</th>
+<th>Seeded problem</th>
+<th>Checker result</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>LP01</td>
+<td>+$0.40 rounding</td>
+<td>Ties (under the $1 tolerance)</td>
+</tr>
+<tr>
+<td>LP03</td>
+<td>Q3 board-fee offset not applied</td>
+<td>Break of -$3,000.00, fee offset named</td>
+</tr>
+<tr>
+<td>LP05</td>
+<td>Equalization interest from the later close never credited</td>
+<td>Break of -$5,260.27, equalization interest named</td>
+</tr>
+<tr>
+<td>LP08</td>
+<td>Q3 capital call wire received but not posted</td>
+<td>Break of -$250,000.00, the July 15 call named</td>
+</tr>
+<tr>
+<td>LP11</td>
+<td>Later-close LP not charged its Q1 catch-up fee</td>
+<td>Break of +$30,000.00; the Q1 catch-up fee is named alongside the Q2 and Q3 fees, since all three are the same size, so a person picks between them</td>
+</tr>
+<tr>
+<td>LP12</td>
+<td>Q2 write-up not allocated to a later-close LP</td>
+<td>Break of -$96,000.00, the Q2 gain named</td>
+</tr>
+</tbody>
+</table></div>
+<p>Result: all 5 seeded breaks flagged with the right component among the named causes, and all 7 other accounts tie. <code>tests/test_tieout.py</code> also re-derives two balances (a first-close LP and a later-close LP) by hand from the terms, independent of the roll-forward code, and checks that equalization interest paid equals interest credited.</p></section><section><h2>Limits</h2><ul>
+<li>One fund, one later close, quarterly events only; no distributions, carried interest, or GP commitment.</li>
+<li>Later-close LPs bear no share of expenses booked before they joined (LP11 and LP12 carry none of the $60,000 Q1 expenses, though they pay the Q1 catch-up fee). Many fund agreements reallocate those early expenses to later-close investors; that rule would be set from the real LPA.</li>
+<li>Diagnosis looks for a single missing or double-counted component. Two errors in one account, or a wrong rate rather than a missing line, come back as "review the account by hand".</li>
+<li>When several components have the same size (LP11), it lists all of them rather than guessing.</li>
+</ul></section>
+<section id="run"><h2>Run it yourself</h2><p>Python 3.9+, standard library only.</p>
+<pre><code>python3 make_example_statements.py   # writes the synthetic statements with seeded breaks + data/answer_key.csv
+python3 tieout.py                    # writes report.md
+python3 -m unittest discover -s tests -v
+</code></pre><p>Code: <a href="https://github.com/pg2342-hub/capital-account-tieout">https://github.com/pg2342-hub/capital-account-tieout</a></p></section>
+<footer>Source and full README at <a href="https://github.com/pg2342-hub/capital-account-tieout">https://github.com/pg2342-hub/capital-account-tieout</a>.</footer>
+</main></body></html>
