@@ -34,5 +34,6 @@ Result: all 5 seeded breaks flagged with the right component among the named cau
 ## Limits
 
 - One fund, one later close, quarterly events only; no distributions, carried interest, or GP commitment.
+- Later-close LPs bear no share of expenses booked before they joined (LP11 and LP12 carry none of the $60,000 Q1 expenses, though they pay the Q1 catch-up fee). Many fund agreements reallocate those early expenses to later-close investors; that rule would be set from the real LPA.
 - Diagnosis looks for a single missing or double-counted component. Two errors in one account, or a wrong rate rather than a missing line, come back as "review the account by hand".
 - When several components have the same size (LP11), it lists all of them rather than guessing.
