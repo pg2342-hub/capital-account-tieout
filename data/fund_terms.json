@@ -1,0 +1,13 @@
+{
+  "_note": "SYNTHETIC example fund. Not any real fund, LPA, or administrator's data. Terms are simplified for illustration.",
+  "fund": "Example Ventures Fund II, L.P. (synthetic)",
+  "initial_close": "2026-01-01",
+  "quarters": ["2026-03-31", "2026-06-30", "2026-09-30"],
+  "management_fee_annual_rate": "0.02",
+  "management_fee_basis": "commitment, charged quarterly (one quarter = rate / 4), allocated to each LP on its own commitment",
+  "fee_offset_pct": "1.00",
+  "fee_offset_basis": "portfolio fees received by the manager reduce that quarter's management fee, shared by commitment",
+  "equalization_interest_annual_rate": "0.08",
+  "equalization_interest_basis": "simple interest, actual/365, from each earlier call date to the later close date; paid by the later-close LP on top of its commitment and credited to earlier LPs by commitment",
+  "allocation_basis": "expenses and unrealized gains or losses are allocated by commitment among LPs admitted at the allocation date"
+}

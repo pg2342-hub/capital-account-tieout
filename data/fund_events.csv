@@ -1,0 +1,15 @@
+date,event,quarter_end,value,note
+2026-01-15,capital_call,2026-03-31,0.20,share of commitment called from LPs admitted at the call date
+2026-03-31,management_fee,2026-03-31,,one quarter of fees for LPs admitted at the quarter end
+2026-03-31,fund_expenses,2026-03-31,60000,formation and operating expenses
+2026-03-31,unrealized_gain,2026-03-31,0,no change in marks
+2026-05-15,later_close,2026-06-30,,LP11 and LP12 admitted; catch-up calls and fees plus equalization interest
+2026-06-01,capital_call,2026-06-30,0.15,
+2026-06-30,management_fee,2026-06-30,,
+2026-06-30,fund_expenses,2026-06-30,45000,
+2026-06-30,unrealized_gain,2026-06-30,1200000,write-up after a portfolio company priced round
+2026-07-15,capital_call,2026-09-30,0.10,
+2026-09-30,management_fee,2026-09-30,,
+2026-09-30,fee_offset,2026-09-30,30000,board fee received by the manager from a portfolio company
+2026-09-30,fund_expenses,2026-09-30,40000,
+2026-09-30,unrealized_gain,2026-09-30,-300000,write-down

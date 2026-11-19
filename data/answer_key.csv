@@ -1,0 +1,13 @@
+lp_id,expected_result,seeded_cause,description
+LP01,TIES,,"rounding difference under $1, should tie"
+LP02,TIES,,clean
+LP03,BREAK,fee offset 2026-09-30,Q3 board-fee offset not applied to this LP's management fee
+LP04,TIES,,clean
+LP05,BREAK,equalization interest 2026-05-15,equalization interest from the later close never credited
+LP06,TIES,,clean
+LP07,TIES,,clean
+LP08,BREAK,call 2026-07-15,Q3 capital call wire received but not posted
+LP09,TIES,,clean
+LP10,TIES,,clean
+LP11,BREAK,catch-up management fee 2026-03-31,later-close LP not charged the Q1 catch-up fee
+LP12,BREAK,unrealized gain/loss 2026-06-30,Q2 write-up not allocated to a later-close LP
