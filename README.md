@@ -1,5 +1,7 @@
 # capital-account-tieout
 
+**Demo page (sample output and eval results, no install):** https://pg2342-hub.github.io/capital-account-tieout/
+
 A small checker for the first gate of a fund administrator switch: before the new books run live, every LP's capital account has to tie to the statement the prior administrator issued.
 
 It rolls each LP's capital account forward from the fund terms, the LP register, and the fund's events (capital calls, management fees, fee offsets, expenses, unrealized gains and losses, and a later close with catch-up calls, catch-up fees, and equalization interest). It then compares each balance with the prior administrator's statement and flags every account off by more than $1, naming the component whose omission or double count explains the gap.
