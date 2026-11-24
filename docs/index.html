@@ -1,210 +1,242 @@
 <!doctype html>
 <html lang="en"><head>
 <!-- demo-chrome --><meta name="theme-color" content="#f4f2ec"><link rel="icon" href="https://pranavgudise.dev/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="https://pranavgudise.dev/kit/demo.css"><!-- /demo-chrome -->
+
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Capital account tie-out checker</title>
-<meta name="description" content="Rolls each LP&#x27;s capital account forward and flags every account that does not tie to the prior administrator&#x27;s statement.">
+<title>Capital account tie-out</title>
+<meta name="description" content="Rolls each LP's capital account forward and checks it against the prior administrator's statement: 7 of 12 accounts tie, and each of the 5 breaks is traced to the line that explains it.">
 <style>
-main{padding-bottom:24px}
-header .kicker{font:400 13px/1.4 var(--mono);letter-spacing:.02em;color:var(--ink-2);margin:56px 0 0}
-header .kicker+h1{margin-top:12px}
-.lede{font-size:18px;color:var(--ink-2);max-width:42em}.lede p{margin:0 0 12px}
-.links{display:flex;flex-wrap:wrap;gap:10px;margin:24px 0 8px}
-.btn{display:inline-flex;align-items:center;min-height:44px;padding:0 20px;border:1px solid var(--rule);border-radius:999px;
-color:var(--ink);text-decoration:none;font:500 15px/1 var(--sans);transition:border-color .2s,background-color .2s}
-.btn:hover{border-color:var(--ink);color:var(--ink)}
-.btn.primary{background:var(--green);border-color:var(--green);color:#fff}.btn.primary:hover{background:var(--green-deep);color:#fff}
-.note{font-size:15px;color:var(--ink-2);margin-top:12px;max-width:46em}
-.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin:40px 0 8px}
-.tile{border:1px solid var(--rule);border-radius:16px;padding:18px 20px}
-.tile .n{font:400 36px/1.1 var(--serif);font-variant-numeric:tabular-nums}
-.tile .l{font-size:14px;color:var(--ink-2);margin-top:6px}
-section{margin-top:24px}
-h3{margin-top:32px}
-.tw{overflow-x:auto;margin:12px 0 20px}
-tr:last-child td{border-bottom:1px solid var(--rule)}
-img{display:block;max-width:100%;height:auto;background:#fff;border-radius:12px;
-box-shadow:0 1px 0 rgb(27 26 23/.06),0 30px 60px -30px rgb(27 26 23/.45);margin:16px 0}
-main>footer{margin-top:56px;font-size:14px;color:var(--ink-2)}
+.head h1{margin:40px 0 14px}
+.head .lead{max-width:44em}
+.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.note{color:var(--ink-2);font-size:15px;max-width:44em;margin-top:14px}
+h2+.note{margin-top:0}
+section[id]{scroll-margin-top:24px}
+/* status chips: a tie is green wash, a break is ink */
+.chip{display:inline-flex;align-items:center;gap:6px;min-height:24px;padding:0 10px;border-radius:999px;font:500 12px/1 var(--mono);letter-spacing:.04em;white-space:nowrap;border:1px solid transparent}
+.chip.ok{background:var(--green-wash);color:var(--green)}
+.chip.ok::before{content:"";width:8px;height:4px;border-left:1.5px solid currentColor;border-bottom:1.5px solid currentColor;transform:translateY(-2px) rotate(-45deg)}
+.chip.brk{background:var(--ink);color:var(--paper)}
+.chip.brk::before{content:"";width:7px;height:7px;border-radius:2px;background:var(--paper);transform:rotate(45deg)}
+.chip.alt{border-color:var(--ink);border-style:dashed;color:var(--ink)}
+.chip.big{min-height:32px;padding:0 14px;font-size:13px}
+/* verdict */
+.verdict{margin:36px 0 0;border:1px solid var(--rule);border-radius:16px;background:#fbfaf6;overflow:hidden}
+.vtop{display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px;padding:16px 24px;border-bottom:1px solid var(--rule)}
+.vtop p{margin:0;color:var(--ink-2);font-size:15px;flex:1 1 18em}
+.vgate{display:inline-flex;align-items:baseline;gap:10px;font-size:14px;color:var(--ink-2);font-variant-numeric:tabular-nums}
+.vgate .vg{font:400 22px/1 var(--serif);color:var(--green)}
+.vbody{display:grid;grid-template-columns:minmax(0,17em) minmax(0,1fr);gap:28px 40px;padding:28px 24px;align-items:start}
+.vnum b{display:block;font:400 64px/1 var(--serif);letter-spacing:-.01em;font-variant-numeric:tabular-nums}
+.vnum span{display:block;margin-top:10px;color:var(--ink-2);font-size:14px;line-height:1.45;max-width:17em}
+.vline{font:400 25px/1.3 var(--serif);margin:0 0 12px;text-wrap:pretty}
+.vsay p:last-child{color:var(--ink-2);margin:0;max-width:40em}
+.vgrid{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:8px;padding:16px 24px 18px;border-top:1px solid var(--rule)}
+.sq{display:flex;flex-direction:column;align-items:center;gap:6px;font:400 11.5px/1 var(--mono);color:var(--ink-2)}
+.sq i{display:block;width:100%;max-width:44px;aspect-ratio:1;border-radius:6px}
+.sq.t i{background:var(--green)}
+.sq.b i{background:var(--ink)}
+.sq.b{color:var(--ink)}
+/* layout: content and a side column */
+.layout{display:grid;grid-template-columns:minmax(0,1fr) 270px;gap:56px;align-items:start;margin-top:8px}
+.side{position:sticky;top:24px;margin-top:64px;display:grid;gap:22px;font-size:14px;color:var(--ink-2)}
+.side h3{margin:0 0 6px;font:500 13px/1.3 var(--sans);color:var(--ink)}
+.side p{margin:0}
+.side nav a{display:block;padding:5px 0;color:var(--ink-2);text-decoration:none;border-bottom:1px solid var(--rule-soft)}
+.side nav a:hover{color:var(--ink)}
+.side pre{font-size:12px;margin:6px 0 0}
+/* break ledger */
+.breaks{list-style:none;margin:0;padding:0;border-top:1px solid var(--ink)}
+.brow{display:grid;grid-template-columns:7em minmax(0,1fr) 10em;grid-template-areas:"id why fig" "id nums nums";gap:6px 20px;padding:16px 0 16px 14px;margin:0;border-bottom:1px solid var(--rule);box-shadow:inset 3px 0 0 var(--ink);background:rgb(27 26 23/.03)}
+.bid{grid-area:id;display:flex;flex-direction:column;align-items:flex-start;gap:8px}
+.bid b{font:400 24px/1 var(--serif)}
+.bwhy{grid-area:why;min-width:0}
+.bcause{margin:0;font-weight:500;font-size:16px;line-height:1.35}
+.bnamed{margin:4px 0 0;font:12.5px/1.5 var(--mono);color:var(--ink-2);overflow-wrap:anywhere}
+.bmore{margin:6px 0 0;font-size:14px;color:var(--ink-2)}
+.bfig{grid-area:fig;text-align:right;padding-right:14px}
+.bfig b{display:block;font:400 28px/1 var(--serif);font-variant-numeric:tabular-nums;white-space:nowrap}
+.bfig span{display:block;font-size:13px;color:var(--ink-2);margin-top:6px}
+.bnums{grid-area:nums;display:flex;flex-wrap:wrap;gap:4px 20px;font-size:13.5px;color:var(--ink-2);padding-right:14px;font-variant-numeric:tabular-nums}
+.bnums b{font-weight:500;color:var(--ink)}
+.bnums a{margin-left:auto}
+/* difference strip */
+.chart{border:1px solid var(--rule);border-radius:16px;background:#fbfaf6;padding:18px 24px 18px}
+.legend{display:flex;flex-wrap:wrap;gap:4px 16px;color:var(--ink-2);font-size:13px;margin-bottom:6px}
+.legend span{display:inline-flex;align-items:center;gap:7px}
+.legend i{width:10px;height:10px;border-radius:50%}
+.legend .lt{background:var(--green)}.legend .lb{background:var(--ink)}
+.srow{display:grid;grid-template-columns:3.4em minmax(0,1fr) 7.5em;column-gap:16px;align-items:center;height:30px;border-top:1px solid var(--rule-soft)}
+.srow.axisrow{border-top:0;height:28px}
+.slp{font:400 13px/1 var(--mono)}
+.srow.brk .slp{font-weight:600}
+.sval{text-align:right;font:500 13.5px/1 var(--sans);font-variant-numeric:tabular-nums;white-space:nowrap}
+.srow.tie .sval{color:var(--green)}
+.strack{position:relative;height:100%}
+.strack .gl{position:absolute;top:0;bottom:0;width:1px;background:var(--rule)}
+.strack.ax span{position:absolute;bottom:6px;transform:translateX(-50%);font:400 12px/1 var(--mono);color:var(--ink-2);white-space:nowrap}
+.strack.ax .band{position:absolute;left:0;top:0;bottom:0;background:var(--green-wash);border-radius:4px 4px 0 0}
+.srow:not(.axisrow) .strack::before{content:"";position:absolute;left:0;top:0;bottom:0;width:14%;background:var(--green-wash)}
+.strack .bar{position:absolute;top:50%;height:2px;margin-top:-1px;background:var(--ink)}
+.strack .dot{position:absolute;top:50%;width:11px;height:11px;margin:-5.5px 0 0 -5.5px;border-radius:50%;background:var(--ink)}
+.srow.tie .dot{background:var(--green)}
+.tw{overflow-x:auto;margin:18px 0 0}
+.ledger td,.ledger th{padding-left:0}
+.ledger td+td,.ledger th+th{padding-left:16px}
+.ledger .st,.seedt .st,.rf .st{text-align:right;width:1%;white-space:nowrap}
+.ledger tr.break td{background:rgb(27 26 23/.045)}
+.ledger tr.break td:first-child{box-shadow:inset 3px 0 0 var(--ink);padding-left:12px}
+/* roll-forward explorer */
+.seg{display:flex;width:fit-content;max-width:100%;flex-wrap:wrap;gap:2px;padding:3px;border:1px solid var(--rule);border-radius:999px;background:var(--paper);margin-bottom:12px}
+.seg button{min-height:34px;padding:0 14px;border:0;border-radius:999px;background:transparent;color:var(--ink-2);font:500 14px/1 var(--sans);cursor:pointer}
+.seg button[aria-checked=true]{background:var(--ink);color:var(--paper)}
+.rf{width:100%;font-size:14.5px}
+.rf[hidden]{display:none}
+.rf td,.rf th{padding-left:0}
+.rf td+td,.rf th+th{padding-left:16px}
+.rf .d{display:inline-block;margin-left:10px;font:12px/1 var(--mono);color:var(--ink-2)}
+.rf tr.hit td{background:rgb(27 26 23/.045)}
+.rf tr.hit td:first-child{box-shadow:inset 3px 0 0 var(--ink);padding-left:12px;font-weight:500}
+.rf tr.tot td{font-weight:600;border-top:1px solid var(--ink)}
+.rf tr.tot2 td{font-weight:500}
+.seedt td:first-child{white-space:nowrap}
+ul.lim{margin:0;padding-left:20px;max-width:46em}
+ul.lim li{margin-bottom:10px}
+@media (max-width:1000px){
+ .layout{grid-template-columns:minmax(0,1fr);gap:0}
+ .side{position:static;margin-top:48px}
+}
+@media (max-width:760px){
+ .vbody{grid-template-columns:minmax(0,1fr);gap:18px}
+ .vnum b{font-size:52px}
+ .vline{font-size:21px}
+ .vgrid{grid-template-columns:repeat(6,minmax(0,1fr));row-gap:12px}
+ .brow{grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"id fig" "why why" "nums nums";gap:10px 12px}
+ .bid{flex-direction:row;align-items:center;gap:10px}
+ .bfig b{font-size:24px}
+ .bnums a{margin-left:0}
+}
+@media (max-width:640px){
+ .vtop,.vbody,.vgrid{padding-left:18px;padding-right:18px}
+ .chart{padding:16px 14px}
+ .srow{grid-template-columns:2.9em minmax(0,1fr) 6.6em;column-gap:8px}
+ .sval{font-size:12.5px}
+ .strack.ax span.odd{display:none}
+ .ledger th,.ledger td{font-size:12.5px}
+ .ledger td+td,.ledger th+th{padding-left:8px}
+ .ledger .st{display:none}
+ .ledger th{white-space:normal}
+ .seedt,.seedt tbody,.seedt tr,.seedt td{display:block}
+ .seedt thead{display:none}
+ .seedt tr{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 12px;padding:10px 0;border-bottom:1px solid var(--rule)}
+ .seedt td{border:0;padding:0}
+ .seedt td:nth-child(2){grid-column:1/-1;grid-row:2;font-weight:500}
+ .seedt td:nth-child(3){grid-column:1/-1;grid-row:3;color:var(--ink-2);font-size:14px}
+ .seedt td:nth-child(4){grid-column:2;grid-row:1}
+ .rf{font-size:13.5px}
+ .rf .d{display:block;margin:3px 0 0}
+ .rf .chip{font-size:0;gap:0;padding:0 7px;min-height:22px}
+}
 </style></head>
 <body>
 <!-- demo-chrome --><header class="demo-top"><a class="demo-brand" href="https://pranavgudise.dev/"><svg class="demo-mark" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9.25"/><g class="n"><path class="f" d="M15.5 8.5 L 13.4 13.4 L 8.5 15.5 L 10.6 10.6 Z"/></g><circle class="p" cx="12" cy="12" r=".7"/></svg><span>Pranav Gudise</span></a><a class="pill" href="https://github.com/pg2342-hub/capital-account-tieout">Code on GitHub</a></header><!-- /demo-chrome -->
+
 <main>
-<header>
-<p class="kicker">Demo · capital-account-tieout</p>
-<h1>Capital account tie-out checker</h1>
-<div class="lede"><p>A small checker for the first gate of a fund administrator switch: before the new books run live, every LP's capital account has to tie to the statement the prior administrator issued.</p>
-<p>It rolls each LP's capital account forward from the fund terms, the LP register, and the fund's events (capital calls, management fees, fee offsets, expenses, unrealized gains and losses, and a later close with catch-up calls, catch-up fees, and equalization interest). It then compares each balance with the prior administrator's statement and flags every account off by more than $1, naming the component whose omission or double count explains the gap.</p>
-<p><strong>All data is synthetic.</strong> <code>data/</code> describes a made-up $50M venture fund with 12 LPs, ten admitted at a January 2026 first close and two at a May 2026 later close. It is not based on any real fund, LPA, or administrator's statements, and the terms are simplified (see <code>data/fund_terms.json</code>). A real LPA's fee basis, offset percentage, equalization rate, and allocation rules all have to be confirmed before a tie-out means anything.</p></div>
-<div class="links"><a class="btn primary" href="https://github.com/pg2342-hub/capital-account-tieout">View the code on GitHub</a><a class="btn" href="#run">Run it yourself</a></div>
-<p class="note">All data is synthetic: a made-up $50M venture fund with 12 LPs, not based on any real fund or administrator. Everything on this page is the committed output of the code in the repository.</p>
-</header>
-<div class="tiles"><div class="tile"><div class="n">5 of 5</div><div class="l">seeded breaks flagged, each with the right cause among those named</div></div><div class="tile"><div class="n">7 of 12</div><div class="l">accounts tie within the $1 tolerance</div></div><div class="tile"><div class="n">$0.40</div><div class="l">rounding difference correctly left as a tie</div></div><div class="tile"><div class="n">4 tests</div><div class="l">including two balances re-derived by hand</div></div></div>
-<section><h2>Sample output: the tie-out report</h2><p>Statements checked: <code>prior_admin_statements_2026-09-30.csv</code>. Tolerance: $1. 7 of 12 accounts tie; 5 break.</p>
-<div class="tw"><table>
-<thead>
-<tr>
-<th>LP</th>
-<th style="text-align: right;">Rolled forward</th>
-<th style="text-align: right;">Statement</th>
-<th style="text-align: right;">Difference</th>
-<th>Result</th>
-<th>Likely cause</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>LP01</td>
-<td style="text-align: right;">3,613,720.55</td>
-<td style="text-align: right;">3,613,720.95</td>
-<td style="text-align: right;">+0.40</td>
-<td>TIES</td>
-<td></td>
-</tr>
-<tr>
-<td>LP02</td>
-<td style="text-align: right;">2,710,290.41</td>
-<td style="text-align: right;">2,710,290.41</td>
-<td style="text-align: right;">+0.00</td>
-<td>TIES</td>
-<td></td>
-</tr>
-<tr>
-<td>LP03</td>
-<td style="text-align: right;">2,258,575.34</td>
-<td style="text-align: right;">2,255,575.34</td>
-<td style="text-align: right;">-3,000.00</td>
-<td>BREAK</td>
-<td>fee offset 2026-09-30 missing from the statement (+3,000.00)</td>
-</tr>
-<tr>
-<td>LP04</td>
-<td style="text-align: right;">2,258,575.34</td>
-<td style="text-align: right;">2,258,575.34</td>
-<td style="text-align: right;">+0.00</td>
-<td>TIES</td>
-<td></td>
-</tr>
-<tr>
-<td>LP05</td>
-<td style="text-align: right;">1,806,860.27</td>
-<td style="text-align: right;">1,801,600.00</td>
-<td style="text-align: right;">-5,260.27</td>
-<td>BREAK</td>
-<td>equalization interest 2026-05-15 missing from the statement (+5,260.27)</td>
-</tr>
-<tr>
-<td>LP06</td>
-<td style="text-align: right;">1,355,145.21</td>
-<td style="text-align: right;">1,355,145.21</td>
-<td style="text-align: right;">+0.00</td>
-<td>TIES</td>
-<td></td>
-</tr>
-<tr>
-<td>LP07</td>
-<td style="text-align: right;">1,355,145.21</td>
-<td style="text-align: right;">1,355,145.21</td>
-<td style="text-align: right;">+0.00</td>
-<td>TIES</td>
-<td></td>
-</tr>
-<tr>
-<td>LP08</td>
-<td style="text-align: right;">1,129,287.67</td>
-<td style="text-align: right;">879,287.67</td>
-<td style="text-align: right;">-250,000.00</td>
-<td>BREAK</td>
-<td>call 2026-07-15 missing from the statement (+250,000.00)</td>
-</tr>
-<tr>
-<td>LP09</td>
-<td style="text-align: right;">903,430.14</td>
-<td style="text-align: right;">903,430.14</td>
-<td style="text-align: right;">+0.00</td>
-<td>TIES</td>
-<td></td>
-</tr>
-<tr>
-<td>LP10</td>
-<td style="text-align: right;">677,572.60</td>
-<td style="text-align: right;">677,572.60</td>
-<td style="text-align: right;">+0.00</td>
-<td>TIES</td>
-<td></td>
-</tr>
-<tr>
-<td>LP11</td>
-<td style="text-align: right;">2,711,400.00</td>
-<td style="text-align: right;">2,741,400.00</td>
-<td style="text-align: right;">+30,000.00</td>
-<td>BREAK</td>
-<td>catch-up management fee 2026-03-31 missing from the statement (-30,000.00); management fee 2026-06-30 missing from the statement (-30,000.00); management fee 2026-09-30 missing from the statement (-30,000.00)</td>
-</tr>
-<tr>
-<td>LP12</td>
-<td style="text-align: right;">1,807,600.00</td>
-<td style="text-align: right;">1,711,600.00</td>
-<td style="text-align: right;">-96,000.00</td>
-<td>BREAK</td>
-<td>unrealized gain/loss 2026-06-30 missing from the statement (+96,000.00)</td>
-</tr>
-</tbody>
-</table></div>
-<p>All data is synthetic. Nothing here comes from a real fund or administrator.</p></section><section><h2>What the demo shows</h2><p>The synthetic statements carry five seeded breaks and one 40-cent rounding difference:</p>
-<div class="tw"><table>
-<thead>
-<tr>
-<th>LP</th>
-<th>Seeded problem</th>
-<th>Checker result</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>LP01</td>
-<td>+$0.40 rounding</td>
-<td>Ties (under the $1 tolerance)</td>
-</tr>
-<tr>
-<td>LP03</td>
-<td>Q3 board-fee offset not applied</td>
-<td>Break of -$3,000.00, fee offset named</td>
-</tr>
-<tr>
-<td>LP05</td>
-<td>Equalization interest from the later close never credited</td>
-<td>Break of -$5,260.27, equalization interest named</td>
-</tr>
-<tr>
-<td>LP08</td>
-<td>Q3 capital call wire received but not posted</td>
-<td>Break of -$250,000.00, the July 15 call named</td>
-</tr>
-<tr>
-<td>LP11</td>
-<td>Later-close LP not charged its Q1 catch-up fee</td>
-<td>Break of +$30,000.00; the Q1 catch-up fee is named alongside the Q2 and Q3 fees, since all three are the same size, so a person picks between them</td>
-</tr>
-<tr>
-<td>LP12</td>
-<td>Q2 write-up not allocated to a later-close LP</td>
-<td>Break of -$96,000.00, the Q2 gain named</td>
-</tr>
-</tbody>
-</table></div>
-<p>Result: all 5 seeded breaks flagged with the right component among the named causes, and all 7 other accounts tie. <code>tests/test_tieout.py</code> also re-derives two balances (a first-close LP and a later-close LP) by hand from the terms, independent of the roll-forward code, and checks that equalization interest paid equals interest credited.</p></section><section><h2>Limits</h2><ul>
+<div class="head">
+<h1>Capital account tie-out</h1>
+<p class="lead">Before a new fund administrator goes live, every LP's capital account has to tie to the statement the prior administrator issued. This rolls each account forward from the fund terms and events and names the line that explains every break.</p>
+</div>
+
+<section class="verdict" aria-label="Result">
+  <div class="vtop">
+    <span class="chip brk big">5 accounts break</span>
+    <p>Statements as of September 30, 2026, checked to a $1 tolerance</p>
+    <span class="vgate">Seeded breaks caught <b class="vg">5 of 5</b></span>
+  </div>
+  <div class="vbody">
+    <div class="vnum"><b>7 of 12</b><span>LP accounts tie within $1. The other 5 break, from $3,000 to $250,000.</span></div>
+    <div class="vsay">
+      <p class="vline">Each break traces to one line the statement left out: a call wire, a fee offset, equalization interest, a write-up, and a catch-up fee.</p>
+      <p>The largest is LP08: a $250,000 capital call on July 15 was received but never posted. LP01's 40-cent rounding difference is correctly left as a tie.</p>
+    </div>
+  </div>
+  <div class="vgrid" aria-label="12 accounts: 7 tie, 5 break"><span class="sq t" title="LP01: ties"><i></i>LP01</span><span class="sq t" title="LP02: ties"><i></i>LP02</span><span class="sq b" title="LP03: breaks"><i></i>LP03</span><span class="sq t" title="LP04: ties"><i></i>LP04</span><span class="sq b" title="LP05: breaks"><i></i>LP05</span><span class="sq t" title="LP06: ties"><i></i>LP06</span><span class="sq t" title="LP07: ties"><i></i>LP07</span><span class="sq b" title="LP08: breaks"><i></i>LP08</span><span class="sq t" title="LP09: ties"><i></i>LP09</span><span class="sq t" title="LP10: ties"><i></i>LP10</span><span class="sq b" title="LP11: breaks"><i></i>LP11</span><span class="sq b" title="LP12: breaks"><i></i>LP12</span></div>
+</section>
+
+<div class="layout">
+<div class="content">
+
+<section id="breaks">
+<h2>Breaks</h2>
+<p class="note">Largest first. The difference is the statement minus the rolled-forward balance, so a negative number means the statement is short.</p>
+<ul class="breaks"><li class="brow"><div class="bid"><b>LP08</b><span class="chip brk">Break</span></div><div class="bwhy"><p class="bcause">Q3 capital call wire received but not posted</p><p class="bnamed">Checker names: call 2026-07-15 missing from the statement (+250,000.00)</p></div><div class="bfig"><b>-$250,000.00</b><span>Statement is short</span></div><div class="bnums"><span>Rolled forward <b>$1,129,287.67</b></span><span>Statement <b>$879,287.67</b></span><a href="#inside" data-lp="LP08" class="peek">See the roll-forward</a></div></li><li class="brow"><div class="bid"><b>LP12</b><span class="chip brk">Break</span></div><div class="bwhy"><p class="bcause">Q2 write-up not allocated to a later-close LP</p><p class="bnamed">Checker names: unrealized gain/loss 2026-06-30 missing from the statement (+96,000.00)</p></div><div class="bfig"><b>-$96,000.00</b><span>Statement is short</span></div><div class="bnums"><span>Rolled forward <b>$1,807,600.00</b></span><span>Statement <b>$1,711,600.00</b></span><a href="#inside" data-lp="LP12" class="peek">See the roll-forward</a></div></li><li class="brow"><div class="bid"><b>LP11</b><span class="chip brk">Break</span></div><div class="bwhy"><p class="bcause">Later-close LP not charged its Q1 catch-up fee</p><p class="bnamed">Checker names: catch-up management fee 2026-03-31 missing from the statement (-30,000.00); management fee 2026-06-30 missing from the statement (-30,000.00); management fee 2026-09-30 missing from the statement (-30,000.00)</p><p class="bmore">Three components are the same $30,000, so the checker names all three and a person picks. The seeded one is the Q1 catch-up fee.</p></div><div class="bfig"><b>+$30,000.00</b><span>Statement is over</span></div><div class="bnums"><span>Rolled forward <b>$2,711,400.00</b></span><span>Statement <b>$2,741,400.00</b></span><a href="#inside" data-lp="LP11" class="peek">See the roll-forward</a></div></li><li class="brow"><div class="bid"><b>LP05</b><span class="chip brk">Break</span></div><div class="bwhy"><p class="bcause">Equalization interest from the later close never credited</p><p class="bnamed">Checker names: equalization interest 2026-05-15 missing from the statement (+5,260.27)</p></div><div class="bfig"><b>-$5,260.27</b><span>Statement is short</span></div><div class="bnums"><span>Rolled forward <b>$1,806,860.27</b></span><span>Statement <b>$1,801,600.00</b></span><a href="#inside" data-lp="LP05" class="peek">See the roll-forward</a></div></li><li class="brow"><div class="bid"><b>LP03</b><span class="chip brk">Break</span></div><div class="bwhy"><p class="bcause">Q3 board-fee offset not applied</p><p class="bnamed">Checker names: fee offset 2026-09-30 missing from the statement (+3,000.00)</p></div><div class="bfig"><b>-$3,000.00</b><span>Statement is short</span></div><div class="bnums"><span>Rolled forward <b>$2,258,575.34</b></span><span>Statement <b>$2,255,575.34</b></span><a href="#inside" data-lp="LP03" class="peek">See the roll-forward</a></div></li></ul>
+</section>
+
+<section id="accounts">
+<h2>All 12 accounts</h2>
+<p class="note">How far each statement sits from the rolled-forward balance. Ties fall inside the $1 band; the axis past it is logarithmic, so a $3,000 break and a $250,000 break both stay readable.</p>
+<div class="chart">
+  <div class="legend" aria-hidden="true"><span><i class="lt"></i>Ties, within $1</span><span><i class="lb"></i>Breaks</span></div>
+  <div class="strip">
+    <div class="srow axisrow" aria-hidden="true"><span class="slp"></span><span class="strack ax"><i class="band" style="width:14.00%"></i><span style="left:14.00%">$1</span><span style="left:28.33%" class=odd>$10</span><span style="left:42.67%">$100</span><span style="left:57.00%" class=odd>$1K</span><span style="left:71.33%">$10K</span><span style="left:85.67%" class=odd>$100K</span><span style="left:100.00%">$1M</span></span><span class="sval"></span></div>
+    <div class="srow tie"><span class="slp">LP01</span><span class="strack"><i class="gl" style="left:14.00%"></i><i class="gl" style="left:28.33%"></i><i class="gl" style="left:42.67%"></i><i class="gl" style="left:57.00%"></i><i class="gl" style="left:71.33%"></i><i class="gl" style="left:85.67%"></i><i class="gl" style="left:100.00%"></i><i class="dot" style="left:max(6px,5.60%)"></i></span><span class="sval">+$0.40</span></div><div class="srow tie"><span class="slp">LP02</span><span class="strack"><i class="gl" style="left:14.00%"></i><i class="gl" style="left:28.33%"></i><i class="gl" style="left:42.67%"></i><i class="gl" style="left:57.00%"></i><i class="gl" style="left:71.33%"></i><i class="gl" style="left:85.67%"></i><i class="gl" style="left:100.00%"></i><i class="dot" style="left:max(6px,0.00%)"></i></span><span class="sval">$0.00</span></div><div class="srow brk"><span class="slp">LP03</span><span class="strack"><i class="gl" style="left:14.00%"></i><i class="gl" style="left:28.33%"></i><i class="gl" style="left:42.67%"></i><i class="gl" style="left:57.00%"></i><i class="gl" style="left:71.33%"></i><i class="gl" style="left:85.67%"></i><i class="gl" style="left:100.00%"></i><i class="bar" style="left:14.00%;width:49.84%"></i><i class="dot" style="left:max(6px,63.84%)"></i></span><span class="sval">-$3,000.00</span></div><div class="srow tie"><span class="slp">LP04</span><span class="strack"><i class="gl" style="left:14.00%"></i><i class="gl" style="left:28.33%"></i><i class="gl" style="left:42.67%"></i><i class="gl" style="left:57.00%"></i><i class="gl" style="left:71.33%"></i><i class="gl" style="left:85.67%"></i><i class="gl" style="left:100.00%"></i><i class="dot" style="left:max(6px,0.00%)"></i></span><span class="sval">$0.00</span></div><div class="srow brk"><span class="slp">LP05</span><span class="strack"><i class="gl" style="left:14.00%"></i><i class="gl" style="left:28.33%"></i><i class="gl" style="left:42.67%"></i><i class="gl" style="left:57.00%"></i><i class="gl" style="left:71.33%"></i><i class="gl" style="left:85.67%"></i><i class="gl" style="left:100.00%"></i><i class="bar" style="left:14.00%;width:53.33%"></i><i class="dot" style="left:max(6px,67.33%)"></i></span><span class="sval">-$5,260.27</span></div><div class="srow tie"><span class="slp">LP06</span><span class="strack"><i class="gl" style="left:14.00%"></i><i class="gl" style="left:28.33%"></i><i class="gl" style="left:42.67%"></i><i class="gl" style="left:57.00%"></i><i class="gl" style="left:71.33%"></i><i class="gl" style="left:85.67%"></i><i class="gl" style="left:100.00%"></i><i class="dot" style="left:max(6px,0.00%)"></i></span><span class="sval">$0.00</span></div><div class="srow tie"><span class="slp">LP07</span><span class="strack"><i class="gl" style="left:14.00%"></i><i class="gl" style="left:28.33%"></i><i class="gl" style="left:42.67%"></i><i class="gl" style="left:57.00%"></i><i class="gl" style="left:71.33%"></i><i class="gl" style="left:85.67%"></i><i class="gl" style="left:100.00%"></i><i class="dot" style="left:max(6px,0.00%)"></i></span><span class="sval">$0.00</span></div><div class="srow brk"><span class="slp">LP08</span><span class="strack"><i class="gl" style="left:14.00%"></i><i class="gl" style="left:28.33%"></i><i class="gl" style="left:42.67%"></i><i class="gl" style="left:57.00%"></i><i class="gl" style="left:71.33%"></i><i class="gl" style="left:85.67%"></i><i class="gl" style="left:100.00%"></i><i class="bar" style="left:14.00%;width:77.37%"></i><i class="dot" style="left:max(6px,91.37%)"></i></span><span class="sval">-$250,000.00</span></div><div class="srow tie"><span class="slp">LP09</span><span class="strack"><i class="gl" style="left:14.00%"></i><i class="gl" style="left:28.33%"></i><i class="gl" style="left:42.67%"></i><i class="gl" style="left:57.00%"></i><i class="gl" style="left:71.33%"></i><i class="gl" style="left:85.67%"></i><i class="gl" style="left:100.00%"></i><i class="dot" style="left:max(6px,0.00%)"></i></span><span class="sval">$0.00</span></div><div class="srow tie"><span class="slp">LP10</span><span class="strack"><i class="gl" style="left:14.00%"></i><i class="gl" style="left:28.33%"></i><i class="gl" style="left:42.67%"></i><i class="gl" style="left:57.00%"></i><i class="gl" style="left:71.33%"></i><i class="gl" style="left:85.67%"></i><i class="gl" style="left:100.00%"></i><i class="dot" style="left:max(6px,0.00%)"></i></span><span class="sval">$0.00</span></div><div class="srow brk"><span class="slp">LP11</span><span class="strack"><i class="gl" style="left:14.00%"></i><i class="gl" style="left:28.33%"></i><i class="gl" style="left:42.67%"></i><i class="gl" style="left:57.00%"></i><i class="gl" style="left:71.33%"></i><i class="gl" style="left:85.67%"></i><i class="gl" style="left:100.00%"></i><i class="bar" style="left:14.00%;width:64.17%"></i><i class="dot" style="left:max(6px,78.17%)"></i></span><span class="sval">+$30,000.00</span></div><div class="srow brk"><span class="slp">LP12</span><span class="strack"><i class="gl" style="left:14.00%"></i><i class="gl" style="left:28.33%"></i><i class="gl" style="left:42.67%"></i><i class="gl" style="left:57.00%"></i><i class="gl" style="left:71.33%"></i><i class="gl" style="left:85.67%"></i><i class="gl" style="left:100.00%"></i><i class="bar" style="left:14.00%;width:71.41%"></i><i class="dot" style="left:max(6px,85.41%)"></i></span><span class="sval">-$96,000.00</span></div>
+  </div>
+</div>
+<div class="tw"><table class="ledger">
+<thead><tr><th>LP</th><th class="num">Rolled forward</th><th class="num">Statement</th><th class="num">Difference</th><th class="st">Result</th></tr></thead>
+<tbody><tr><td>LP01</td><td class="num">3,613,720.55</td><td class="num">3,613,720.95</td><td class="num">+0.40</td><td class="st"><span class="chip ok">Ties</span></td></tr><tr><td>LP02</td><td class="num">2,710,290.41</td><td class="num">2,710,290.41</td><td class="num">+0.00</td><td class="st"><span class="chip ok">Ties</span></td></tr><tr class="break"><td>LP03</td><td class="num">2,258,575.34</td><td class="num">2,255,575.34</td><td class="num">-3,000.00</td><td class="st"><span class="chip brk">Break</span></td></tr><tr><td>LP04</td><td class="num">2,258,575.34</td><td class="num">2,258,575.34</td><td class="num">+0.00</td><td class="st"><span class="chip ok">Ties</span></td></tr><tr class="break"><td>LP05</td><td class="num">1,806,860.27</td><td class="num">1,801,600.00</td><td class="num">-5,260.27</td><td class="st"><span class="chip brk">Break</span></td></tr><tr><td>LP06</td><td class="num">1,355,145.21</td><td class="num">1,355,145.21</td><td class="num">+0.00</td><td class="st"><span class="chip ok">Ties</span></td></tr><tr><td>LP07</td><td class="num">1,355,145.21</td><td class="num">1,355,145.21</td><td class="num">+0.00</td><td class="st"><span class="chip ok">Ties</span></td></tr><tr class="break"><td>LP08</td><td class="num">1,129,287.67</td><td class="num">879,287.67</td><td class="num">-250,000.00</td><td class="st"><span class="chip brk">Break</span></td></tr><tr><td>LP09</td><td class="num">903,430.14</td><td class="num">903,430.14</td><td class="num">+0.00</td><td class="st"><span class="chip ok">Ties</span></td></tr><tr><td>LP10</td><td class="num">677,572.60</td><td class="num">677,572.60</td><td class="num">+0.00</td><td class="st"><span class="chip ok">Ties</span></td></tr><tr class="break"><td>LP11</td><td class="num">2,711,400.00</td><td class="num">2,741,400.00</td><td class="num">+30,000.00</td><td class="st"><span class="chip brk">Break</span></td></tr><tr class="break"><td>LP12</td><td class="num">1,807,600.00</td><td class="num">1,711,600.00</td><td class="num">-96,000.00</td><td class="st"><span class="chip brk">Break</span></td></tr></tbody></table></div>
+<p class="note">Statements checked: <code>prior_admin_statements_2026-09-30.csv</code>. Tolerance: $1. 7 of 12 accounts tie; 5 break.</p>
+</section>
+
+<section id="inside">
+<h2>Inside a break</h2>
+<p class="note">Every account is the sum of its components. The checker looks for one component whose omission or double count closes the gap within $1, and names it.</p>
+<div class="chart">
+  <div class="seg" role="radiogroup" aria-label="Account"><button type="button" role="radio" aria-checked="true" data-v="LP08">LP08</button><button type="button" role="radio" aria-checked="false" data-v="LP12">LP12</button><button type="button" role="radio" aria-checked="false" data-v="LP11">LP11</button><button type="button" role="radio" aria-checked="false" data-v="LP05">LP05</button><button type="button" role="radio" aria-checked="false" data-v="LP03">LP03</button></div>
+  <table class="rf" id="rf-LP08"><thead><tr><th>Component</th><th class="num">Amount</th><th></th></tr></thead><tbody><tr><td>Call<span class="d">Jan 15, 2026</span></td><td class="num">+500,000.00</td><td class="st"></td></tr><tr><td>Management fee<span class="d">Mar 31, 2026</span></td><td class="num">-12,500.00</td><td class="st"></td></tr><tr><td>Expenses<span class="d">Mar 31, 2026</span></td><td class="num">-3,750.00</td><td class="st"></td></tr><tr><td>Equalization interest<span class="d">May 15, 2026</span></td><td class="num">+3,287.67</td><td class="st"></td></tr><tr><td>Call<span class="d">Jun 1, 2026</span></td><td class="num">+375,000.00</td><td class="st"></td></tr><tr><td>Management fee<span class="d">Jun 30, 2026</span></td><td class="num">-12,500.00</td><td class="st"></td></tr><tr><td>Expenses<span class="d">Jun 30, 2026</span></td><td class="num">-2,250.00</td><td class="st"></td></tr><tr><td>Unrealized gain/loss<span class="d">Jun 30, 2026</span></td><td class="num">+60,000.00</td><td class="st"></td></tr><tr class="hit"><td>Call<span class="d">Jul 15, 2026</span></td><td class="num">+250,000.00</td><td class="st"><span class="chip brk">Missing from statement</span></td></tr><tr><td>Management fee<span class="d">Sep 30, 2026</span></td><td class="num">-12,500.00</td><td class="st"></td></tr><tr><td>Fee offset<span class="d">Sep 30, 2026</span></td><td class="num">+1,500.00</td><td class="st"></td></tr><tr><td>Expenses<span class="d">Sep 30, 2026</span></td><td class="num">-2,000.00</td><td class="st"></td></tr><tr><td>Unrealized gain/loss<span class="d">Sep 30, 2026</span></td><td class="num">-15,000.00</td><td class="st"></td></tr><tr class="tot"><td>Rolled forward</td><td class="num">1,129,287.67</td><td></td></tr><tr class="tot2"><td>Prior administrator statement</td><td class="num">879,287.67</td><td></td></tr><tr class="tot2"><td>Difference</td><td class="num">-250,000.00</td><td class="st"><span class="chip brk">Break</span></td></tr></tbody></table><table class="rf" id="rf-LP12" hidden><thead><tr><th>Component</th><th class="num">Amount</th><th></th></tr></thead><tbody><tr><td>Catch-up call<span class="d">Jan 15, 2026</span></td><td class="num">+800,000.00</td><td class="st"></td></tr><tr><td>Catch-up management fee<span class="d">Mar 31, 2026</span></td><td class="num">-20,000.00</td><td class="st"></td></tr><tr><td>Call<span class="d">Jun 1, 2026</span></td><td class="num">+600,000.00</td><td class="st"></td></tr><tr><td>Management fee<span class="d">Jun 30, 2026</span></td><td class="num">-20,000.00</td><td class="st"></td></tr><tr><td>Expenses<span class="d">Jun 30, 2026</span></td><td class="num">-3,600.00</td><td class="st"></td></tr><tr class="hit"><td>Unrealized gain/loss<span class="d">Jun 30, 2026</span></td><td class="num">+96,000.00</td><td class="st"><span class="chip brk">Missing from statement</span></td></tr><tr><td>Call<span class="d">Jul 15, 2026</span></td><td class="num">+400,000.00</td><td class="st"></td></tr><tr><td>Management fee<span class="d">Sep 30, 2026</span></td><td class="num">-20,000.00</td><td class="st"></td></tr><tr><td>Fee offset<span class="d">Sep 30, 2026</span></td><td class="num">+2,400.00</td><td class="st"></td></tr><tr><td>Expenses<span class="d">Sep 30, 2026</span></td><td class="num">-3,200.00</td><td class="st"></td></tr><tr><td>Unrealized gain/loss<span class="d">Sep 30, 2026</span></td><td class="num">-24,000.00</td><td class="st"></td></tr><tr class="tot"><td>Rolled forward</td><td class="num">1,807,600.00</td><td></td></tr><tr class="tot2"><td>Prior administrator statement</td><td class="num">1,711,600.00</td><td></td></tr><tr class="tot2"><td>Difference</td><td class="num">-96,000.00</td><td class="st"><span class="chip brk">Break</span></td></tr></tbody></table><table class="rf" id="rf-LP11" hidden><thead><tr><th>Component</th><th class="num">Amount</th><th></th></tr></thead><tbody><tr><td>Catch-up call<span class="d">Jan 15, 2026</span></td><td class="num">+1,200,000.00</td><td class="st"></td></tr><tr class="hit"><td>Catch-up management fee<span class="d">Mar 31, 2026</span></td><td class="num">-30,000.00</td><td class="st"><span class="chip brk">Missing from statement</span></td></tr><tr><td>Call<span class="d">Jun 1, 2026</span></td><td class="num">+900,000.00</td><td class="st"></td></tr><tr class="hit"><td>Management fee<span class="d">Jun 30, 2026</span></td><td class="num">-30,000.00</td><td class="st"><span class="chip alt">Same size</span></td></tr><tr><td>Expenses<span class="d">Jun 30, 2026</span></td><td class="num">-5,400.00</td><td class="st"></td></tr><tr><td>Unrealized gain/loss<span class="d">Jun 30, 2026</span></td><td class="num">+144,000.00</td><td class="st"></td></tr><tr><td>Call<span class="d">Jul 15, 2026</span></td><td class="num">+600,000.00</td><td class="st"></td></tr><tr class="hit"><td>Management fee<span class="d">Sep 30, 2026</span></td><td class="num">-30,000.00</td><td class="st"><span class="chip alt">Same size</span></td></tr><tr><td>Fee offset<span class="d">Sep 30, 2026</span></td><td class="num">+3,600.00</td><td class="st"></td></tr><tr><td>Expenses<span class="d">Sep 30, 2026</span></td><td class="num">-4,800.00</td><td class="st"></td></tr><tr><td>Unrealized gain/loss<span class="d">Sep 30, 2026</span></td><td class="num">-36,000.00</td><td class="st"></td></tr><tr class="tot"><td>Rolled forward</td><td class="num">2,711,400.00</td><td></td></tr><tr class="tot2"><td>Prior administrator statement</td><td class="num">2,741,400.00</td><td></td></tr><tr class="tot2"><td>Difference</td><td class="num">+30,000.00</td><td class="st"><span class="chip brk">Break</span></td></tr></tbody></table><table class="rf" id="rf-LP05" hidden><thead><tr><th>Component</th><th class="num">Amount</th><th></th></tr></thead><tbody><tr><td>Call<span class="d">Jan 15, 2026</span></td><td class="num">+800,000.00</td><td class="st"></td></tr><tr><td>Management fee<span class="d">Mar 31, 2026</span></td><td class="num">-20,000.00</td><td class="st"></td></tr><tr><td>Expenses<span class="d">Mar 31, 2026</span></td><td class="num">-6,000.00</td><td class="st"></td></tr><tr class="hit"><td>Equalization interest<span class="d">May 15, 2026</span></td><td class="num">+5,260.27</td><td class="st"><span class="chip brk">Missing from statement</span></td></tr><tr><td>Call<span class="d">Jun 1, 2026</span></td><td class="num">+600,000.00</td><td class="st"></td></tr><tr><td>Management fee<span class="d">Jun 30, 2026</span></td><td class="num">-20,000.00</td><td class="st"></td></tr><tr><td>Expenses<span class="d">Jun 30, 2026</span></td><td class="num">-3,600.00</td><td class="st"></td></tr><tr><td>Unrealized gain/loss<span class="d">Jun 30, 2026</span></td><td class="num">+96,000.00</td><td class="st"></td></tr><tr><td>Call<span class="d">Jul 15, 2026</span></td><td class="num">+400,000.00</td><td class="st"></td></tr><tr><td>Management fee<span class="d">Sep 30, 2026</span></td><td class="num">-20,000.00</td><td class="st"></td></tr><tr><td>Fee offset<span class="d">Sep 30, 2026</span></td><td class="num">+2,400.00</td><td class="st"></td></tr><tr><td>Expenses<span class="d">Sep 30, 2026</span></td><td class="num">-3,200.00</td><td class="st"></td></tr><tr><td>Unrealized gain/loss<span class="d">Sep 30, 2026</span></td><td class="num">-24,000.00</td><td class="st"></td></tr><tr class="tot"><td>Rolled forward</td><td class="num">1,806,860.27</td><td></td></tr><tr class="tot2"><td>Prior administrator statement</td><td class="num">1,801,600.00</td><td></td></tr><tr class="tot2"><td>Difference</td><td class="num">-5,260.27</td><td class="st"><span class="chip brk">Break</span></td></tr></tbody></table><table class="rf" id="rf-LP03" hidden><thead><tr><th>Component</th><th class="num">Amount</th><th></th></tr></thead><tbody><tr><td>Call<span class="d">Jan 15, 2026</span></td><td class="num">+1,000,000.00</td><td class="st"></td></tr><tr><td>Management fee<span class="d">Mar 31, 2026</span></td><td class="num">-25,000.00</td><td class="st"></td></tr><tr><td>Expenses<span class="d">Mar 31, 2026</span></td><td class="num">-7,500.00</td><td class="st"></td></tr><tr><td>Equalization interest<span class="d">May 15, 2026</span></td><td class="num">+6,575.34</td><td class="st"></td></tr><tr><td>Call<span class="d">Jun 1, 2026</span></td><td class="num">+750,000.00</td><td class="st"></td></tr><tr><td>Management fee<span class="d">Jun 30, 2026</span></td><td class="num">-25,000.00</td><td class="st"></td></tr><tr><td>Expenses<span class="d">Jun 30, 2026</span></td><td class="num">-4,500.00</td><td class="st"></td></tr><tr><td>Unrealized gain/loss<span class="d">Jun 30, 2026</span></td><td class="num">+120,000.00</td><td class="st"></td></tr><tr><td>Call<span class="d">Jul 15, 2026</span></td><td class="num">+500,000.00</td><td class="st"></td></tr><tr><td>Management fee<span class="d">Sep 30, 2026</span></td><td class="num">-25,000.00</td><td class="st"></td></tr><tr class="hit"><td>Fee offset<span class="d">Sep 30, 2026</span></td><td class="num">+3,000.00</td><td class="st"><span class="chip brk">Missing from statement</span></td></tr><tr><td>Expenses<span class="d">Sep 30, 2026</span></td><td class="num">-4,000.00</td><td class="st"></td></tr><tr><td>Unrealized gain/loss<span class="d">Sep 30, 2026</span></td><td class="num">-30,000.00</td><td class="st"></td></tr><tr class="tot"><td>Rolled forward</td><td class="num">2,258,575.34</td><td></td></tr><tr class="tot2"><td>Prior administrator statement</td><td class="num">2,255,575.34</td><td></td></tr><tr class="tot2"><td>Difference</td><td class="num">-3,000.00</td><td class="st"><span class="chip brk">Break</span></td></tr></tbody></table>
+</div>
+</section>
+
+<section id="seeded">
+<h2>Seeded problems</h2>
+<p class="note">The synthetic statements carry five seeded breaks and one 40-cent rounding difference.</p>
+<div class="tw"><table class="seedt">
+<thead><tr><th>LP</th><th>Seeded problem</th><th>Checker result</th><th class="st"></th></tr></thead>
+<tbody><tr><td>LP01</td><td>+$0.40 rounding</td><td>Ties (under the $1 tolerance)</td><td class="st"><span class="chip ok">Caught</span></td></tr><tr><td>LP03</td><td>Q3 board-fee offset not applied</td><td>Break of -$3,000.00, fee offset named</td><td class="st"><span class="chip ok">Caught</span></td></tr><tr><td>LP05</td><td>Equalization interest from the later close never credited</td><td>Break of -$5,260.27, equalization interest named</td><td class="st"><span class="chip ok">Caught</span></td></tr><tr><td>LP08</td><td>Q3 capital call wire received but not posted</td><td>Break of -$250,000.00, the July 15 call named</td><td class="st"><span class="chip ok">Caught</span></td></tr><tr><td>LP11</td><td>Later-close LP not charged its Q1 catch-up fee</td><td>Break of +$30,000.00; the Q1 catch-up fee is named alongside the Q2 and Q3 fees, since all three are the same size, so a person picks between them</td><td class="st"><span class="chip ok">Caught</span></td></tr><tr><td>LP12</td><td>Q2 write-up not allocated to a later-close LP</td><td>Break of -$96,000.00, the Q2 gain named</td><td class="st"><span class="chip ok">Caught</span></td></tr></tbody></table></div>
+<p class="note">Result: all 5 seeded breaks flagged with the right component among the named causes, and all 7 other accounts tie. <code>tests/test_tieout.py</code> also re-derives two balances (a first-close LP and a later-close LP) by hand from the terms, independent of the roll-forward code, and checks that equalization interest paid equals interest credited. Four tests in all.</p>
+</section>
+
+<section id="limits">
+<h2>Limits</h2>
+<ul class="lim">
 <li>One fund, one later close, quarterly events only; no distributions, carried interest, or GP commitment.</li>
 <li>Later-close LPs bear no share of expenses booked before they joined (LP11 and LP12 carry none of the $60,000 Q1 expenses, though they pay the Q1 catch-up fee). Many fund agreements reallocate those early expenses to later-close investors; that rule would be set from the real LPA.</li>
 <li>Diagnosis looks for a single missing or double-counted component. Two errors in one account, or a wrong rate rather than a missing line, come back as "review the account by hand".</li>
 <li>When several components have the same size (LP11), it lists all of them rather than guessing.</li>
-</ul></section>
-<section id="run"><h2>Run it yourself</h2><p>Python 3.9+, standard library only.</p>
-<pre><code>python3 make_example_statements.py   # writes the synthetic statements with seeded breaks + data/answer_key.csv
-python3 tieout.py                    # writes report.md
-python3 -m unittest discover -s tests -v
-</code></pre><p>Code: <a href="https://github.com/pg2342-hub/capital-account-tieout">https://github.com/pg2342-hub/capital-account-tieout</a></p></section>
-<footer>Source and full README at <a href="https://github.com/pg2342-hub/capital-account-tieout">https://github.com/pg2342-hub/capital-account-tieout</a>.</footer>
-</main><!-- demo-chrome --><footer class="demo-foot"><span>A working build by <a href="https://pranavgudise.dev/">Pranav Gudise</a>. Synthetic or public data only.</span><a href="https://github.com/pg2342-hub/capital-account-tieout">github.com/pg2342-hub/capital-account-tieout</a></footer><!-- /demo-chrome -->
+</ul>
+</section>
+</div>
+
+<aside class="side" aria-label="About this build">
+  <nav aria-label="On this page"><a href="#breaks">Breaks</a><a href="#accounts">All 12 accounts</a><a href="#inside">Inside a break</a><a href="#seeded">Seeded problems</a><a href="#limits">Limits</a></nav>
+  <div><h3>Data</h3><p>All data is made up: a $50M venture fund with 12 LPs, ten admitted at a January 2026 first close and two at a May 2026 later close. It is not based on any real fund, LPA, or administrator's statements, and the terms are simplified (see <code>data/fund_terms.json</code>). A real LPA's fee basis, offset percentage, equalization rate, and allocation rules all have to be confirmed before a tie-out means anything.</p></div>
+  <div><h3>Run it yourself</h3><p>Python 3.9+, standard library only. Everything on this page is the committed output of the code in the repository.</p><pre>python3 make_example_statements.py
+python3 tieout.py
+python3 -m unittest discover \
+  -s tests -v</pre></div>
+  <div><a class="pill" href="https://github.com/pg2342-hub/capital-account-tieout">Code on GitHub</a></div>
+</aside>
+</div>
+</main>
+<script>
+const seg=[...document.querySelectorAll('.seg button')];
+function pick(v){
+ seg.forEach(x=>x.setAttribute('aria-checked',String(x.dataset.v===v)));
+ document.querySelectorAll('.rf').forEach(t=>t.hidden=t.id!=='rf-'+v);
+}
+seg.forEach(b=>b.addEventListener('click',()=>pick(b.dataset.v)));
+document.querySelectorAll('a.peek').forEach(a=>a.addEventListener('click',()=>pick(a.dataset.lp)));
+</script>
+<!-- demo-chrome --><footer class="demo-foot"><span>A working build by <a href="https://pranavgudise.dev/">Pranav Gudise</a>. Synthetic or public data only.</span><a href="https://github.com/pg2342-hub/capital-account-tieout">github.com/pg2342-hub/capital-account-tieout</a></footer><!-- /demo-chrome -->
 </body></html>
